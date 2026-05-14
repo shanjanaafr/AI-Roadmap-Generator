@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VALSIA — AI Roadmap Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c26;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0f0f5;
+    --muted: #8888a0;
+    --hint: #55556a;
+    --accent: #6c63ff;
+    --accent2: #a78bfa;
+    --accent-glow: rgba(108,99,255,0.18);
+    --teal: #2dd4bf;
+    --amber: #f59e0b;
+    --rose: #fb7185;
+    --green: #4ade80;
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0;
+    background-image:
+      linear-gradient(rgba(108,99,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108,99,255,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+
+  /* Ambient glow */
+  body::after {
+    content: '';
+    position: fixed; top: -20%; left: 30%; width: 600px; height: 500px;
+    background: radial-gradient(ellipse, rgba(108,99,255,0.08) 0%, transparent 70%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .page {
+    position: relative; z-index: 1;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 60px 24px 80px;
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 52px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    background: rgba(108,99,255,0.12);
+    border: 1px solid rgba(108,99,255,0.25);
+    padding: 5px 12px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+  }
+
+  .badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: blink 2s infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(32px, 5vw, 48px);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+
+  h1 span {
+    background: linear-gradient(135deg, #6c63ff, #a78bfa, #2dd4bf);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .subtitle {
+    font-size: 16px;
+    color: var(--muted);
+    font-weight: 300;
+    line-height: 1.6;
+  }
+
+  /* Input section */
+  .input-section {
+    animation: fadeUp 0.6s 0.1s ease both;
+    margin-bottom: 20px;
+  }
+
+  .input-box {
+    display: flex;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border2);
+    border-radius: 14px;
+    padding: 8px 8px 8px 20px;
+    transition: border-color 0.2s;
+  }
+
+  .input-box:focus-within {
+    border-color: rgba(108,99,255,0.5);
+    box-shadow: 0 0 0 3px rgba(108,99,255,0.08);
+  }
+
+  .input-box input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    font-size: 15px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text);
+  }
+
+  .input-box input::placeholder { color: var(--hint); }
+
+  .gen-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .gen-btn:hover { background: #7c74ff; transform: translateY(-1px); }
+  .gen-btn:active { transform: translateY(0) scale(0.98); }
+  .gen-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  .arrow-icon { font-size: 16px; transition: transform 0.2s; }
+  .gen-btn:hover .arrow-icon { transform: translateX(3px); }
+
+  /* Tags */
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    animation: fadeUp 0.6s 0.15s ease both;
+    margin-bottom: 36px;
+  }
+
+  .tag {
+    font-size: 12px;
+    padding: 5px 13px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    background: none;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.2s;
+  }
+
+  .tag:hover {
+    border-color: var(--border2);
+    color: var(--text);
+    background: var(--surface);
+  }
+
+  /* Loading */
+  .loading {
+    display: none;
+    align-items: center;
+    gap: 12px;
+    padding: 24px 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .loading.visible { display: flex; }
+
+  .dots { display: flex; gap: 5px; }
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: bounce 1.3s infinite;
+  }
+  .dot:nth-child(2) { animation-delay: 0.15s; background: var(--accent2); }
+  .dot:nth-child(3) { animation-delay: 0.3s; background: var(--teal); }
+
+  @keyframes bounce { 0%,80%,100%{transform:translateY(0); opacity:0.4} 40%{transform:translateY(-6px); opacity:1} }
+
+  /* Error */
+  .error {
+    display: none;
+    font-size: 13px;
+    color: #fca5a5;
+    background: rgba(251,113,133,0.08);
+    border: 1px solid rgba(251,113,133,0.2);
+    padding: 10px 14px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+  }
+  .error.visible { display: block; }
+
+  /* Output */
+  .output { display: none; }
+  .output.visible { display: block; animation: fadeUp 0.5s ease both; }
+
+  .roadmap-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .roadmap-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .meta-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .meta-chip {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  .chip-level { background: rgba(108,99,255,0.15); color: var(--accent2); border: 1px solid rgba(108,99,255,0.25); }
+  .chip-duration { background: rgba(45,212,191,0.1); color: var(--teal); border: 1px solid rgba(45,212,191,0.2); }
+
+  .summary {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.7;
+    margin-bottom: 28px;
+    padding: 14px 16px;
+    background: var(--surface);
+    border-radius: 10px;
+    border-left: 3px solid var(--accent);
+  }
+
+  /* Phase cards */
+  .phases { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+
+  .phase {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .phase:hover { border-color: var(--border2); }
+
+  .phase-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .phase-num {
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .phase-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .phase-dur {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--hint);
+  }
+
+  .phase-body {
+    padding: 18px 20px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 540px) { .phase-body { grid-template-columns: 1fr; } }
+
+  .topics-col h4, .res-col h4 {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--hint);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+
+  .topic-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+    margin-bottom: 7px;
+  }
+
+  .topic-item::before {
+    content: '›';
+    color: var(--accent);
+    font-size: 14px;
+    line-height: 1.4;
+    flex-shrink: 0;
+  }
+
+  .res-chips { display: flex; flex-direction: column; gap: 6px; }
+
+  .res-chip {
+    font-size: 12px;
+    padding: 5px 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--muted);
+  }
+
+  /* Pro tip */
+  .pro-tip {
+    background: linear-gradient(135deg, rgba(108,99,255,0.08), rgba(45,212,191,0.06));
+    border: 1px solid rgba(108,99,255,0.18);
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .tip-icon {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: rgba(108,99,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    color: var(--accent2);
+  }
+
+  .tip-text { font-size: 13px; color: var(--muted); line-height: 1.7; }
+  .tip-text strong { color: var(--text); font-weight: 500; }
+
+  /* Reset */
+  .reset-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--hint);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    padding: 0;
+    margin-bottom: 24px;
+    transition: color 0.2s;
+  }
+
+  .reset-btn:hover { color: var(--muted); }
+
+  /* Phase number colors */
+  .p1 { background: rgba(108,99,255,0.15); color: #a78bfa; }
+  .p2 { background: rgba(45,212,191,0.12); color: #2dd4bf; }
+  .p3 { background: rgba(245,158,11,0.12); color: #f59e0b; }
+  .p4 { background: rgba(251,113,133,0.12); color: #fb7185; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Footer */
+  .footer {
+    margin-top: 60px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--hint);
+    letter-spacing: 0.05em;
+  }
+
+  .footer span { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="badge">VALSIA · AI Prototype</div>
+    <h1>Learn anything.<br><span>Build your roadmap.</span></h1>
+    <p class="subtitle">Enter a skill or career goal — get a phased learning plan with topics, timelines, and resources, generated by AI.</p>
+  </div>
+
+  <div class="input-section">
+    <div class="input-box">
+      <input type="text" id="goal-input" placeholder="e.g. Machine Learning Engineer, UI/UX Designer, DevOps..." />
+      <button class="gen-btn" id="gen-btn" onclick="generateRoadmap()">
+        Generate <span class="arrow-icon">→</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="tags">
+    <button class="tag" onclick="setGoal('Machine Learning Engineer')">Machine Learning</button>
+    <button class="tag" onclick="setGoal('Full Stack Web Developer')">Full Stack Dev</button>
+    <button class="tag" onclick="setGoal('UI/UX Designer')">UI/UX Design</button>
+    <button class="tag" onclick="setGoal('Cybersecurity Analyst')">Cybersecurity</button>
+    <button class="tag" onclick="setGoal('Data Scientist')">Data Science</button>
+    <button class="tag" onclick="setGoal('DevOps Engineer')">DevOps</button>
+    <button class="tag" onclick="setGoal('Mobile App Developer')">Mobile Dev</button>
+    <button class="tag" onclick="setGoal('Blockchain Developer')">Blockchain</button>
+  </div>
+
+  <div class="error" id="error-box"></div>
+
+  <div class="loading" id="loading">
+    <div class="dots">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+    <span>Generating your personalized roadmap...</span>
+  </div>
+
+  <div class="output" id="output"></div>
+
+  <div class="footer">Powered by <span>Claude API</span> · Built for VALSIA</div>
+</div>
+
+<script>
+  document.getElementById('goal-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') generateRoadmap();
+  });
+
+  function setGoal(g) {
+    document.getElementById('goal-input').value = g;
+    generateRoadmap();
+  }
+
+  async function generateRoadmap() {
+    const goal = document.getElementById('goal-input').value.trim();
+    if (!goal) return;
+
+    const btn = document.getElementById('gen-btn');
+    const loading = document.getElementById('loading');
+    const output = document.getElementById('output');
+    const errEl = document.getElementById('error-box');
+
+    btn.disabled = true;
+    loading.classList.add('visible');
+    output.classList.remove('visible');
+    output.innerHTML = '';
+    errEl.classList.remove('visible');
+
+    const systemPrompt = `You are an expert learning coach. Given a skill or career goal, return a structured learning roadmap as JSON only. No markdown, no extra text, no code fences.
+
+JSON format:
+{
+  "goal": "string",
+  "duration": "string — total estimate e.g. '6–9 months'",
+  "level": "Beginner | Intermediate | Advanced",
+  "summary": "string — 1 sentence overview",
+  "phases": [
+    {
+      "title": "string",
+      "duration": "string",
+      "topics": ["topic1","topic2","topic3","topic4"],
+      "resources": ["Platform or Course 1","Platform or Course 2","Platform or Course 3"]
+    }
+  ],
+  "pro_tip": "string — one expert tip"
+}
+
+Rules: 3–4 phases, 4–5 topics each, real resource names (no URLs), return ONLY valid JSON.`;
+
+    try {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: `Goal: ${goal}` }]
+        })
+      });
+
+      const data = await res.json();
+      const raw = (data.content || []).map(b => b.text || '').join('');
+      const clean = raw.replace(/```json|```/g, '').trim();
+      const roadmap = JSON.parse(clean);
+      renderRoadmap(roadmap);
+    } catch(e) {
+      errEl.textContent = 'Could not generate roadmap. Check your connection and try again.';
+      errEl.classList.add('visible');
+    } finally {
+      btn.disabled = false;
+      loading.classList.remove('visible');
+    }
+  }
+
+  function renderRoadmap(r) {
+    const numClasses = ['p1','p2','p3','p4'];
+
+    let phasesHtml = r.phases.map((phase, i) => {
+      const nc = numClasses[i % 4];
+      const topics = phase.topics.map(t =>
+        `<div class="topic-item">${esc(t)}</div>`
+      ).join('');
+      const chips = phase.resources.map(res =>
+        `<div class="res-chip">${esc(res)}</div>`
+      ).join('');
+
+      return `
+        <div class="phase">
+          <div class="phase-header">
+            <div class="phase-num ${nc}">${i + 1}</div>
+            <div class="phase-name">${esc(phase.title)}</div>
+            <div class="phase-dur">${esc(phase.duration)}</div>
+          </div>
+          <div class="phase-body">
+            <div class="topics-col">
+              <h4>Topics</h4>
+              ${topics}
+            </div>
+            <div class="res-col">
+              <h4>Resources</h4>
+              <div class="res-chips">${chips}</div>
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+
+    const html = `
+      <button class="reset-btn" onclick="resetForm()">← New roadmap</button>
+      <div class="roadmap-header">
+        <div class="roadmap-title">${esc(r.goal)}</div>
+        <div class="meta-chips">
+          <span class="meta-chip chip-level">${esc(r.level)}</span>
+          <span class="meta-chip chip-duration">${esc(r.duration)}</span>
+        </div>
+      </div>
+      <div class="summary">${esc(r.summary)}</div>
+      <div class="phases">${phasesHtml}</div>
+      ${r.pro_tip ? `
+      <div class="pro-tip">
+        <div class="tip-icon">✦</div>
+        <div class="tip-text"><strong>Pro tip —</strong> ${esc(r.pro_tip)}</div>
+      </div>` : ''}
+    `;
+
+    const output = document.getElementById('output');
+    output.innerHTML = html;
+    output.classList.add('visible');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function resetForm() {
+    document.getElementById('goal-input').value = '';
+    const output = document.getElementById('output');
+    output.classList.remove('visible');
+    output.innerHTML = '';
+  }
+
+  function esc(s) {
+    return String(s)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>
